@@ -22,22 +22,19 @@ export default async function handler(request, response) {
 
   try {
     const isOpenFixture = item => !['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(item.fixture.status.short);
-    let fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(date)}`);
-    let fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
-    // 晚间当天比赛都已开始或结束时，自动切换到次日赛程，避免首页回退到演示数据。
-    if (!fixtures.length && !request.query.date) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDate = chinaDate(tomorrow);
-      fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(tomorrowDate)}`);
-      fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
-    }
-    // Some competitions are published late and may not appear in a date query.
-    // Use the provider's next-fixtures feed as the final fallback.
-    if (!fixtures.length && !request.query.date) {
-      fixturesPayload = await apiFetch('fixtures?next=1');
-      fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
-    }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = chinaDate(tomorrow);
+    // 首页固定合并：今日未结束赛事 + 明日待开赛赛事。
+    // 两次赛程请求 + 最多八次积分榜请求，仍在免费套餐的每分钟额度内。
+    const [todayPayload, tomorrowPayload] = await Promise.all([
+      apiFetch(`fixtures?date=${encodeURIComponent(date)}`),
+      apiFetch(`fixtures?date=${encodeURIComponent(tomorrowDate)}`)
+    ]);
+    const todayFixtures = (todayPayload.response || []).filter(isOpenFixture);
+    const tomorrowFixtures = (tomorrowPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+    const fixtureMap = new Map([...todayFixtures, ...tomorrowFixtures].map(item => [item.fixture.id, item]));
+    const fixtures = [...fixtureMap.values()].sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
     const featured = fixtures.slice(0, 8);
     const predictions = {};
     const standingRequests = [...new Map(featured.map(item => [`${item.league.id}-${item.league.season}`, item])).values()];
