@@ -1,4 +1,3 @@
-
 const databaseUrl = () => process.env.SUPABASE_URL?.replace(/\/$/, '');
 const databaseKey = () => process.env.SUPABASE_SECRET_KEY;
 
@@ -34,7 +33,8 @@ export function archiveToPrediction(row) {
 }
 
 export async function readArchivedFixtures(daysAhead = 7) {
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // Retain recent completed pages for SEO as well as all future fixtures.
+  const cutoff = new Date(Date.now() - daysAhead * 24 * 60 * 60 * 1000).toISOString();
   const limit = Math.max(30, daysAhead * 35);
   const response = await databaseRequest(`match_archives?select=*&kickoff_at=gte.${encodeURIComponent(cutoff)}&order=kickoff_at.asc&limit=${limit}`);
   return response ? response.json() : [];
