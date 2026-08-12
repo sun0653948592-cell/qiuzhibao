@@ -28,7 +28,7 @@ export default async function handler(request, response) {
       if (prediction) predictions[featured[index].fixture.id] = prediction;
     });
 
-    response.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
+    response.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=120');
     return response.status(200).json({ fixtures, predictions, updatedAt: new Date().toISOString() });
   } catch {
     return response.status(502).json({ error: 'Could not load the daily analysis feed.' });
