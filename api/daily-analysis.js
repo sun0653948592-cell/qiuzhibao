@@ -21,15 +21,22 @@ export default async function handler(request, response) {
   };
 
   try {
+    const isOpenFixture = item => !['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(item.fixture.status.short);
     let fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(date)}`);
-    let fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+    let fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
     // 晚间当天比赛都已开始或结束时，自动切换到次日赛程，避免首页回退到演示数据。
     if (!fixtures.length && !request.query.date) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowDate = chinaDate(tomorrow);
       fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(tomorrowDate)}`);
-      fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+      fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
+    }
+    // Some competitions are published late and may not appear in a date query.
+    // Use the provider's next-fixtures feed as the final fallback.
+    if (!fixtures.length && !request.query.date) {
+      fixturesPayload = await apiFetch('fixtures?next=1');
+      fixtures = (fixturesPayload.response || []).filter(isOpenFixture);
     }
     const featured = fixtures.slice(0, 8);
     const predictions = {};
