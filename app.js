@@ -142,7 +142,8 @@ async function loadTodayFixtures() {
     render(matches);
     document.querySelector('.hero-meta span:first-child').innerHTML = '<i></i> 真实赛程与模型数据已同步';
   } catch {
-    render(sampleMatches);
+    grid.innerHTML = '<p style="grid-column:1/-1;padding:36px 0;color:#6e7773">暂时无法同步赛程，请稍后刷新。不会显示演示赛事。</p>';
+    document.querySelector('#matchCount').textContent = '0';
   }
 }
 
