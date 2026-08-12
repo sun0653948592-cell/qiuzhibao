@@ -45,7 +45,9 @@ function render(matches) {
     card.querySelector('.draw-bar').style.width = `${match.drawProb}%`;
     card.querySelector('.away-bar').style.width = `${match.awayProb}%`;
     card.querySelector('.insight').textContent = match.insight;
-    card.querySelector('.read-analysis').addEventListener('click', () => showAnalysis(match));
+    card.querySelector('.read-analysis').addEventListener('click', () => {
+      window.location.href = `/match/${match.id}`;
+    });
     grid.appendChild(card);
   });
   document.querySelector('#matchCount').textContent = matches.length;
