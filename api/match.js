@@ -14,6 +14,7 @@ const chineseNames = {
   , 'Fundacion Amigos': '阿米戈斯基金会', 'Costa Brava': '布拉瓦海岸'
 };
 import { buildPrediction } from './model.js';
+import { archiveToFixture, archiveToPrediction, readArchivedFixture, saveFixtures } from './archive.js';
 
 const cn = (value) => chineseNames[value] || value;
 const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -34,17 +35,24 @@ function localizeAdvice(value) {
 export default async function handler(request, response) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   const fixtureId = String(request.query.id || '');
-  if (!apiKey || !/^\d+$/.test(fixtureId)) return response.status(404).send('比赛页面不存在。');
+  if (!/^\d+$/.test(fixtureId)) return response.status(404).send('比赛页面不存在。');
 
   const apiFetch = async (path) => {
     const upstream = await fetch(`https://v3.football.api-sports.io/${path}`, { headers: { 'x-apisports-key': apiKey } });
-    if (!upstream.ok) throw new Error('upstream failed');
-    return upstream.json();
+    const payload = await upstream.json();
+    if (!upstream.ok || Object.keys(payload.errors || {}).length) throw new Error(Object.values(payload.errors || {})[0] || 'upstream failed');
+    return payload;
   };
 
   try {
-    const fixtureData = await apiFetch(`fixtures?id=${fixtureId}`);
-    let fixture = fixtureData.response?.[0];
+    const archived = await readArchivedFixture(fixtureId);
+    let fixture = archived ? archiveToFixture(archived) : null;
+    let ownPrediction = archived ? archiveToPrediction(archived) : null;
+    if (!fixture && !apiKey) return response.status(503).send('比赛数据暂时不可用，请稍后刷新。');
+    if (!fixture) {
+      const fixtureData = await apiFetch(`fixtures?id=${fixtureId}`);
+      fixture = fixtureData.response?.[0];
+    }
     // Some lower-tier fixtures are briefly absent from the single-ID endpoint.
     // Retry the current-day listing before presenting a not-found page.
     if (!fixture) {
@@ -53,8 +61,11 @@ export default async function handler(request, response) {
       fixture = dailyData.response?.find(item => String(item.fixture.id) === fixtureId);
     }
     if (!fixture) return response.status(404).send('未找到这场比赛。');
-    const standingsData = await apiFetch(`standings?league=${fixture.league.id}&season=${fixture.league.season}`);
-    const ownPrediction = buildPrediction(fixture.teams.home.id, fixture.teams.away.id, standingsData.response?.[0]?.league?.standings);
+    if (!ownPrediction) {
+      const standingsData = await apiFetch(`standings?league=${fixture.league.id}&season=${fixture.league.season}`);
+      ownPrediction = buildPrediction(fixture.teams.home.id, fixture.teams.away.id, standingsData.response?.[0]?.league?.standings);
+      if (ownPrediction) await saveFixtures([fixture], { [fixture.fixture.id]: ownPrediction });
+    }
     const home = cn(fixture.teams.home.name);
     const away = cn(fixture.teams.away.name);
     const league = cn(fixture.league.name);
