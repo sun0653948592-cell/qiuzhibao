@@ -30,7 +30,14 @@ export default async function handler(request, response) {
 
   try {
     const [fixtureData, predictionData] = await Promise.all([apiFetch(`fixtures?id=${fixtureId}`), apiFetch(`predictions?fixture=${fixtureId}`)]);
-    const fixture = fixtureData.response?.[0];
+    let fixture = fixtureData.response?.[0];
+    // Some lower-tier fixtures are briefly absent from the single-ID endpoint.
+    // Retry the current-day listing before presenting a not-found page.
+    if (!fixture) {
+      const today = new Date().toISOString().slice(0, 10);
+      const dailyData = await apiFetch(`fixtures?date=${today}`);
+      fixture = dailyData.response?.find(item => String(item.fixture.id) === fixtureId);
+    }
     if (!fixture) return response.status(404).send('未找到这场比赛。');
     const prediction = predictionData.response?.[0]?.predictions;
     const home = cn(fixture.teams.home.name);
@@ -47,7 +54,7 @@ export default async function handler(request, response) {
     const canonical = `https://${request.headers.host}/match/${fixtureId}`;
     const structuredData = JSON.stringify({ '@context': 'https://schema.org', '@type': 'SportsEvent', name: `${home} vs ${away}`, startDate: fixture.fixture.date, url: canonical, homeTeam: { '@type': 'SportsTeam', name: home }, awayTeam: { '@type': 'SportsTeam', name: away }, sport: 'Soccer', description });
     response.setHeader('Content-Type', 'text/html; charset=utf-8');
-    response.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
+    response.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=120');
     return response.status(200).send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(canonical)}"><meta name="robots" content="index,follow"><script type="application/ld+json">${structuredData}</script><style>body{margin:0;background:#f4f3ee;color:#17221f;font-family:Arial,"Noto Sans SC",sans-serif}.wrap{max-width:900px;margin:auto;padding:28px 20px 70px}a{color:#17221f}.brand{font-weight:800;text-decoration:none}.brand i{display:inline-block;width:9px;height:9px;border-radius:99px;background:#c9f35c;box-shadow:0 0 0 3px #17221f;margin-right:8px}.crumb{font-size:13px;color:#65706a;margin:52px 0 17px}.label{font-size:12px;color:#65706a;letter-spacing:.06em}.tag{display:inline-block;margin-left:8px;padding:4px 7px;background:#e9efcf;color:#4a554f;font-size:11px}h1{font-size:clamp(34px,7vw,58px);letter-spacing:-.06em;margin:12px 0}p{line-height:1.8}.muted{color:#65706a}.card{background:#fffefa;border:1px solid #d8d9d1;padding:28px;margin-top:28px}.prob{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:10px;margin:25px 0}.prob span{display:block;font-size:13px;color:#65706a}.prob b{display:block;font-size:31px;margin-top:5px}.bar{display:flex;height:8px;border-radius:4px;overflow:hidden}.bar i{display:block}.h{background:#c9f35c;width:${homeProb}%}.d{background:#c8cbc7;width:${drawProb}%}.a{background:#ff745d;width:${awayProb}%}h2{margin-top:32px}.notice{font-size:13px;color:#65706a;border-top:1px solid #d8d9d1;margin-top:32px;padding-top:18px}</style></head><body><main class="wrap"><a class="brand" href="/"><i></i>球智报</a><div class="crumb">首页 / ${escapeHtml(league)} / 赛前分析</div><span class="label">${escapeHtml(league)} · ${escapeHtml(kickoff)}</span><span class="tag">${noPrediction ? '待数据校准' : '数据模型预测'}</span><h1>${escapeHtml(home)} vs ${escapeHtml(away)}</h1><p class="muted">比赛前瞻、胜平负概率与数据模型结论</p><section class="card"><div class="prob"><div><span>主胜</span><b>${homeProb}%</b></div><div><span>平局</span><b>${drawProb}%</b></div><div><span>客胜</span><b>${awayProb}%</b></div></div><div class="bar"><i class="h"></i><i class="d"></i><i class="a"></i></div><h2>AI 赛前结论</h2><p>${escapeHtml(advice)}</p><h2>模型说明</h2><p>概率由数据源的赛前模型提供，并会随比赛信息更新而校准。它反映的是不确定性下的概率判断，不保证赛果。</p><p class="notice">数据更新时间：${escapeHtml(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))}。内容仅供足球数据分析与娱乐参考，不构成任何建议。</p></section></main></body></html>`);
   } catch {
     return response.status(502).send('比赛数据暂时不可用，请稍后刷新。');
