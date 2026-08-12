@@ -82,10 +82,24 @@ function createInitialAnalysis(home, away) {
   };
 }
 
-function fromApiFixture(item) {
+function toPercent(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function fromApiFixture(item, prediction) {
   const home = toChineseName(item.teams.home.name);
   const away = toChineseName(item.teams.away.name);
   const basic = createInitialAnalysis(home, away);
+  const probability = prediction?.percent;
+  if (probability) {
+    basic.homeProb = toPercent(probability.home, basic.homeProb);
+    basic.drawProb = toPercent(probability.draw, basic.drawProb);
+    basic.awayProb = toPercent(probability.away, basic.awayProb);
+    basic.confidence = '数据模型预测';
+    basic.insight = prediction.advice || '综合双方近期表现、交锋与联赛数据生成。';
+    basic.analysis = `本场概率由赛前数据模型计算。${prediction.advice || '预测会在球队状态或阵容信息更新后同步校准。'} 该结论仅供足球数据分析与娱乐参考。`;
+  }
   return {
     id: item.fixture.id,
     league: toChineseName(item.league.name),
@@ -98,16 +112,15 @@ function fromApiFixture(item) {
 
 async function loadTodayFixtures() {
   try {
-    const response = await fetch('/api/fixtures', { headers: { Accept: 'application/json' } });
+    const response = await fetch('/api/daily-analysis', { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error('fixtures unavailable');
     const payload = await response.json();
-    const matches = (payload.response || [])
-      .filter(item => item.fixture.status.short === 'NS')
+    const matches = (payload.fixtures || [])
       .slice(0, 30)
-      .map(fromApiFixture);
+      .map(item => fromApiFixture(item, payload.predictions?.[item.fixture.id]));
     if (!matches.length) throw new Error('no scheduled fixtures');
     render(matches);
-    document.querySelector('.hero-meta span:first-child').innerHTML = '<i></i> 真实赛程已同步';
+    document.querySelector('.hero-meta span:first-child').innerHTML = '<i></i> 真实赛程与模型数据已同步';
   } catch {
     render(sampleMatches);
   }
