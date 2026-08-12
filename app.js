@@ -16,7 +16,8 @@ const chineseNames = {
   'Inter': '国际米兰', 'Inter Milan': '国际米兰', 'AC Milan': 'AC米兰', 'Juventus': '尤文图斯', 'Napoli': '那不勒斯',
   'Paris Saint Germain': '巴黎圣日耳曼', 'Marseille': '马赛', 'Monaco': '摩纳哥',
   'FK Kukesi': '库克斯', 'Besa Kavajë': '贝萨卡瓦耶', 'East Bengal II': '东孟加拉二队',
-  'Al Arabi': '阿拉比', 'Amkar': '阿姆卡尔', 'Pobeda Nizhny Novgorod': '下诺夫哥罗德波别达'
+  'Al Arabi': '阿拉比', 'Amkar': '阿姆卡尔', 'Pobeda Nizhny Novgorod': '下诺夫哥罗德波别达',
+  'Pobeda Nizhniy Novgorod': '下诺夫哥罗德波别达', 'Kaluga': '卡卢加', 'Iskra Smolensk': '斯摩棱斯克火花'
 };
 
 function toChineseName(name) {
@@ -87,18 +88,30 @@ function toPercent(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function localizeAdvice(advice) {
+  if (!advice) return '';
+  let text = advice.replace('Double chance:', '双重机会：').replace('draw or', '平局或');
+  Object.entries(chineseNames).forEach(([english, chinese]) => {
+    text = text.replaceAll(english, chinese);
+  });
+  return text;
+}
+
 function fromApiFixture(item, prediction) {
   const home = toChineseName(item.teams.home.name);
   const away = toChineseName(item.teams.away.name);
   const basic = createInitialAnalysis(home, away);
   const probability = prediction?.percent;
-  if (probability) {
+  const sourceAdvice = prediction?.advice || '';
+  const isUnavailable = /no predictions available/i.test(sourceAdvice);
+  if (probability && !isUnavailable) {
     basic.homeProb = toPercent(probability.home, basic.homeProb);
     basic.drawProb = toPercent(probability.draw, basic.drawProb);
     basic.awayProb = toPercent(probability.away, basic.awayProb);
     basic.confidence = '数据模型预测';
-    basic.insight = prediction.advice || '综合双方近期表现、交锋与联赛数据生成。';
-    basic.analysis = `本场概率由赛前数据模型计算。${prediction.advice || '预测会在球队状态或阵容信息更新后同步校准。'} 该结论仅供足球数据分析与娱乐参考。`;
+    const advice = localizeAdvice(sourceAdvice);
+    basic.insight = advice || '综合双方近期表现、交锋与联赛数据生成。';
+    basic.analysis = `本场概率由赛前数据模型计算。${advice || '预测会在球队状态或阵容信息更新后同步校准。'} 该结论仅供足球数据分析与娱乐参考。`;
   }
   return {
     id: item.fixture.id,
