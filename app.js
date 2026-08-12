@@ -45,5 +45,52 @@ document.querySelectorAll('.filter').forEach(button => button.addEventListener('
   render(league === 'all' ? sampleMatches : sampleMatches.filter(match => match.league === league));
 }));
 
+function formatKickoff(isoTime) {
+  const kickoff = new Date(isoTime);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const label = kickoff.toDateString() === today.toDateString() ? '今天' : kickoff.toDateString() === tomorrow.toDateString() ? '明天' : `${kickoff.getMonth() + 1}/${kickoff.getDate()}`;
+  return `${label} ${kickoff.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+}
+
+function createInitialAnalysis(home, away) {
+  return {
+    homeProb: 39, drawProb: 29, awayProb: 32,
+    confidence: '待数据校准',
+    insight: '真实赛程已同步。AI 正在结合球队近期表现生成赛前判断。',
+    analysis: `${home} 对阵 ${away} 的基础赛程信息已同步。首版模型将在接入双方近期战绩、主客场表现和伤停信息后，生成可复盘的胜平负概率。`
+  };
+}
+
+function fromApiFixture(item) {
+  const basic = createInitialAnalysis(item.teams.home.name, item.teams.away.name);
+  return {
+    id: item.fixture.id,
+    league: item.league.name,
+    time: formatKickoff(item.fixture.date),
+    home: item.teams.home.name,
+    away: item.teams.away.name,
+    ...basic
+  };
+}
+
+async function loadTodayFixtures() {
+  try {
+    const response = await fetch('/api/fixtures', { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('fixtures unavailable');
+    const payload = await response.json();
+    const matches = (payload.response || [])
+      .filter(item => item.fixture.status.short === 'NS')
+      .slice(0, 12)
+      .map(fromApiFixture);
+    if (!matches.length) throw new Error('no scheduled fixtures');
+    render(matches);
+    document.querySelector('.hero-meta span:first-child').innerHTML = '<i></i> 真实赛程已同步';
+  } catch {
+    render(sampleMatches);
+  }
+}
+
 document.querySelector('#todayDate').textContent = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
-render(sampleMatches);
+loadTodayFixtures();
