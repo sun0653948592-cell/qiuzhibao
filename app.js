@@ -133,7 +133,10 @@ function fromApiFixture(item, prediction) {
 async function loadTodayFixtures() {
   try {
     const response = await fetch('/api/daily-analysis', { headers: { Accept: 'application/json' } });
-    if (!response.ok) throw new Error('fixtures unavailable');
+    if (!response.ok) {
+      const failure = await response.json().catch(() => ({}));
+      throw new Error(failure.error || 'fixtures unavailable');
+    }
     const payload = await response.json();
     const matches = (payload.fixtures || [])
       .slice(0, 30)
@@ -141,8 +144,8 @@ async function loadTodayFixtures() {
     if (!matches.length) throw new Error('no scheduled fixtures');
     render(matches);
     document.querySelector('.hero-meta span:first-child').innerHTML = '<i></i> 真实赛程与模型数据已同步';
-  } catch {
-    grid.innerHTML = '<p style="grid-column:1/-1;padding:36px 0;color:#6e7773">暂时无法同步赛程，请稍后刷新。不会显示演示赛事。</p>';
+  } catch (error) {
+    grid.innerHTML = `<p style="grid-column:1/-1;padding:36px 0;color:#6e7773">${error.message}</p>`;
     document.querySelector('#matchCount').textContent = '0';
   }
 }
