@@ -1,5 +1,7 @@
-// First-stage analysis feed: one fixtures request plus at most eight prediction requests.
-// The limit keeps the API-Football free plan below its 10 requests/minute allowance.
+import { buildPrediction } from './model.js';
+
+// One fixtures request plus at most eight standings requests keeps the free plan
+// below its 10 requests/minute allowance while using 球智报's own model.
 export default async function handler(request, response) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) return response.status(503).json({ error: 'API_FOOTBALL_KEY is not configured.' });
@@ -17,15 +19,17 @@ export default async function handler(request, response) {
     const fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(date)}`);
     const fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
     const featured = fixtures.slice(0, 8);
-    const predictionResults = await Promise.allSettled(
-      featured.map(item => apiFetch(`predictions?fixture=${item.fixture.id}`))
-    );
-
     const predictions = {};
-    predictionResults.forEach((result, index) => {
-      if (result.status !== 'fulfilled') return;
-      const prediction = result.value.response?.[0]?.predictions;
-      if (prediction) predictions[featured[index].fixture.id] = prediction;
+    const standingRequests = [...new Map(featured.map(item => [`${item.league.id}-${item.league.season}`, item])).values()];
+    const standingResults = await Promise.allSettled(standingRequests.map(item => apiFetch(`standings?league=${item.league.id}&season=${item.league.season}`)));
+    const standingsByLeague = new Map();
+    standingResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') standingsByLeague.set(`${standingRequests[index].league.id}-${standingRequests[index].league.season}`, result.value.response?.[0]?.league?.standings);
+    });
+    featured.forEach(item => {
+      const standings = standingsByLeague.get(`${item.league.id}-${item.league.season}`);
+      const prediction = buildPrediction(item.teams.home.id, item.teams.away.id, standings);
+      if (prediction) predictions[item.fixture.id] = prediction;
     });
 
     response.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=120');
