@@ -34,7 +34,15 @@ export default async function handler(request, response) {
     const todayFixtures = (todayPayload.response || []).filter(isOpenFixture);
     const tomorrowFixtures = (tomorrowPayload.response || []).filter(item => item.fixture.status.short === 'NS');
     const fixtureMap = new Map([...todayFixtures, ...tomorrowFixtures].map(item => [item.fixture.id, item]));
-    const fixtures = [...fixtureMap.values()].sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+    let fixtures = [...fixtureMap.values()].sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+    // 若供应商的按日期索引延迟，直接读取接下来 50 场待开赛赛事。
+    // 这保证深夜和跨日时首页仍有真实赛程可展示。
+    if (!fixtures.length) {
+      const nextPayload = await apiFetch('fixtures?next=50');
+      fixtures = (nextPayload.response || [])
+        .filter(item => item.fixture.status.short === 'NS')
+        .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+    }
     const featured = fixtures.slice(0, 8);
     const predictions = {};
     const standingRequests = [...new Map(featured.map(item => [`${item.league.id}-${item.league.season}`, item])).values()];
