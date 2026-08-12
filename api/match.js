@@ -11,11 +11,24 @@ const chineseNames = {
   'East Bengal II': '东孟加拉二队', 'Al Arabi': '阿拉比', 'Amkar': '阿姆卡尔',
   'Pobeda Nizhny Novgorod': '下诺夫哥罗德波别达', 'Pobeda Nizhniy Novgorod': '下诺夫哥罗德波别达',
   'Kaluga': '卡卢加', 'Iskra Smolensk': '斯摩棱斯克火花'
+  , 'Fundacion Amigos': '阿米戈斯基金会', 'Costa Brava': '布拉瓦海岸'
 };
 
 const cn = (value) => chineseNames[value] || value;
 const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 const pct = (value, fallback = 33) => Number.parseInt(value, 10) || fallback;
+
+function localizeAdvice(value) {
+  let text = String(value || '');
+  Object.entries(chineseNames).forEach(([english, chinese]) => { text = text.replaceAll(english, chinese); });
+  return text
+    .replace(/Combo Double chance\s*:/i, '组合双重机会：')
+    .replace(/Double chance\s*:/i, '双重机会：')
+    .replace(/\bor draw\b/gi, '或平局')
+    .replace(/\bdraw or\b/gi, '平局或')
+    .replace(/\s+and\s+-(\d+(?:\.\d+)?)\s+goals?/i, '，且总进球小于 $1')
+    .replace(/\s+and\s+\+(\d+(?:\.\d+)?)\s+goals?/i, '，且总进球大于 $1');
+}
 
 export default async function handler(request, response) {
   const apiKey = process.env.API_FOOTBALL_KEY;
@@ -48,7 +61,7 @@ export default async function handler(request, response) {
     const homeProb = noPrediction ? 33 : pct(prediction.percent.home);
     const drawProb = noPrediction ? 34 : pct(prediction.percent.draw);
     const awayProb = noPrediction ? 33 : pct(prediction.percent.away);
-    const advice = noPrediction ? '该场比赛暂未获得足够的赛前模型数据，网站会在数据更新后自动校准。' : prediction.advice;
+    const advice = noPrediction ? '该场比赛暂未获得足够的赛前模型数据，网站会在数据更新后自动校准。' : localizeAdvice(prediction.advice);
     const title = `${home} vs ${away}预测｜胜平负概率与赛前分析｜球智报`;
     const description = `${league} ${home}对阵${away}，开赛时间：${kickoff}。主胜${homeProb}%、平局${drawProb}%、客胜${awayProb}%；查看球智报赛前数据分析。`;
     const canonical = `https://${request.headers.host}/match/${fixtureId}`;
