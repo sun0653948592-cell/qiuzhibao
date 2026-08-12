@@ -6,7 +6,12 @@ export default async function handler(request, response) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) return response.status(503).json({ error: 'API_FOOTBALL_KEY is not configured.' });
 
-  const date = request.query.date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const chinaDate = (value = new Date()) => {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(value);
+    const get = type => parts.find(part => part.type === type)?.value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  };
+  const date = request.query.date || chinaDate();
   const apiFetch = async (path) => {
     const upstream = await fetch(`https://v3.football.api-sports.io/${path}`, {
       headers: { 'x-apisports-key': apiKey }
@@ -22,7 +27,7 @@ export default async function handler(request, response) {
     if (!fixtures.length && !request.query.date) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow);
+      const tomorrowDate = chinaDate(tomorrow);
       fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(tomorrowDate)}`);
       fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
     }
