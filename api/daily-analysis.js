@@ -6,7 +6,7 @@ export default async function handler(request, response) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) return response.status(503).json({ error: 'API_FOOTBALL_KEY is not configured.' });
 
-  const date = request.query.date || new Date().toISOString().slice(0, 10);
+  const date = request.query.date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const apiFetch = async (path) => {
     const upstream = await fetch(`https://v3.football.api-sports.io/${path}`, {
       headers: { 'x-apisports-key': apiKey }
@@ -16,8 +16,16 @@ export default async function handler(request, response) {
   };
 
   try {
-    const fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(date)}`);
-    const fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+    let fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(date)}`);
+    let fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+    // 晚间当天比赛都已开始或结束时，自动切换到次日赛程，避免首页回退到演示数据。
+    if (!fixtures.length && !request.query.date) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(tomorrow);
+      fixturesPayload = await apiFetch(`fixtures?date=${encodeURIComponent(tomorrowDate)}`);
+      fixtures = (fixturesPayload.response || []).filter(item => item.fixture.status.short === 'NS');
+    }
     const featured = fixtures.slice(0, 8);
     const predictions = {};
     const standingRequests = [...new Map(featured.map(item => [`${item.league.id}-${item.league.season}`, item])).values()];
