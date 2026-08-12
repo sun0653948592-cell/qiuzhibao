@@ -115,7 +115,7 @@ function fromApiFixture(item, prediction) {
     basic.homeProb = toPercent(probability.home, basic.homeProb);
     basic.drawProb = toPercent(probability.draw, basic.drawProb);
     basic.awayProb = toPercent(probability.away, basic.awayProb);
-    basic.confidence = '数据模型预测';
+    basic.confidence = prediction.label || '球智报模型 v0.1';
     const advice = localizeAdvice(sourceAdvice);
     basic.insight = advice || '综合双方近期表现、交锋与联赛数据生成。';
     basic.analysis = `本场概率由赛前数据模型计算。${advice || '预测会在球队状态或阵容信息更新后同步校准。'} 该结论仅供足球数据分析与娱乐参考。`;
