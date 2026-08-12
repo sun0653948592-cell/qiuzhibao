@@ -1,4 +1,5 @@
 import { buildPrediction } from './model.js';
+import { archiveToFixture, archiveToPrediction, readArchivedFixtures, saveFixtures } from './archive.js';
 
 // One fixtures request plus at most eight standings requests keeps the free plan
 // below its 10 requests/minute allowance while using 球智报's own model.
@@ -16,11 +17,22 @@ export default async function handler(request, response) {
     const upstream = await fetch(`https://v3.football.api-sports.io/${path}`, {
       headers: { 'x-apisports-key': apiKey }
     });
-    if (!upstream.ok) throw new Error(`Upstream response: ${upstream.status}`);
-    return upstream.json();
+    const payload = await upstream.json();
+    if (!upstream.ok || Object.keys(payload.errors || {}).length) throw new Error(Object.values(payload.errors || {})[0] || `Upstream response: ${upstream.status}`);
+    return payload;
   };
 
   try {
+    // First use the archive. Normal page views consume no football-data requests.
+    const archived = await readArchivedFixtures();
+    if (archived.length) {
+      const predictions = {};
+      archived.forEach(row => {
+        const prediction = archiveToPrediction(row);
+        if (prediction) predictions[row.fixture_id] = prediction;
+      });
+      return response.status(200).json({ fixtures: archived.map(archiveToFixture), predictions, updatedAt: new Date().toISOString(), source: 'archive' });
+    }
     const isOpenFixture = item => !['FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO'].includes(item.fixture.status.short);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -57,9 +69,12 @@ export default async function handler(request, response) {
       if (prediction) predictions[item.fixture.id] = prediction;
     });
 
-    response.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=120');
-    return response.status(200).json({ fixtures, predictions, updatedAt: new Date().toISOString() });
-  } catch {
-    return response.status(502).json({ error: 'Could not load the daily analysis feed.' });
+    await saveFixtures(fixtures, predictions);
+
+    response.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=3600');
+    return response.status(200).json({ fixtures, predictions, updatedAt: new Date().toISOString(), source: 'provider' });
+  } catch (error) {
+    const message = /request limit/i.test(error.message) ? '今日足球数据额度已用完；已存档的赛事仍可浏览。' : '暂时无法同步赛程，请稍后刷新。';
+    return response.status(503).json({ error: message });
   }
 }
