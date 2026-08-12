@@ -1,0 +1,14 @@
+# 球智报
+
+球智报是一个中文足球赛前分析网站，提供当天足球赛程、胜平负概率和数据模型生成的赛前结论。
+
+## 内容说明
+
+- 每场比赛使用独立 URL：`/match/{fixtureId}`。
+- 页面会注明模型概率、数据更新时间和免责声明。
+- 内容仅用于足球数据分析与娱乐参考，不构成任何建议。
+
+## 重要页面
+
+- 首页：https://qiuzhibao.vercel.app/
+- Sitemap：https://qiuzhibao.vercel.app/sitemap.xml
