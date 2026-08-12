@@ -1,0 +1,8 @@
+# Secrets: never upload these files or paste their contents into source code.
+.env
+.env.local
+.env.*.local
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db

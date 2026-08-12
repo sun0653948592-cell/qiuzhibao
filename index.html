@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="球智报：每天用数据和 AI 解读值得关注的足球比赛。" />
+    <title>球智报 · 每日足球 AI 分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="球智报首页"><span class="brand-dot"></span>球智报 <small>GOAL INTELLIGENCE</small></a>
+      <nav aria-label="主导航"><a class="active" href="#today">今日分析</a><a href="#leagues">热门联赛</a><a href="#record">模型战绩</a></nav>
+      <button class="menu-button" type="button" aria-label="打开菜单">☰</button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">DAILY FOOTBALL BRIEFING · <span id="todayDate"></span></p>
+        <h1>每天值得看的<br /><em>足球 AI 分析</em></h1>
+        <p class="hero-copy">基于近期表现、主客场数据与球队动态，为你用三分钟读懂一场比赛。</p>
+        <div class="hero-meta"><span><i></i> 数据已更新</span><span>今日 <b id="matchCount">3</b> 场焦点赛事</span></div>
+      </section>
+
+      <section class="filters" id="leagues" aria-label="赛事筛选">
+        <button class="filter active" data-league="all">全部</button>
+        <button class="filter" data-league="英超">英超</button>
+        <button class="filter" data-league="西甲">西甲</button>
+        <button class="filter" data-league="欧冠">欧冠</button>
+        <button class="filter" data-league="意甲">意甲</button>
+      </section>
+
+      <section class="section-heading" id="today">
+        <div><p class="eyebrow">TODAY'S PICKS</p><h2>今日焦点比赛</h2></div>
+        <p>预测于开赛前更新，实际阵容公布后将自动校准。</p>
+      </section>
+
+      <div class="match-grid" id="matchGrid" aria-live="polite"></div>
+
+      <section class="how-it-works">
+        <div><p class="eyebrow">THE MODEL</p><h2>结论来自数据，<br />不是“神单”。</h2></div>
+        <div class="method-list">
+          <article><span>01</span><h3>比赛数据</h3><p>近期战绩、进失球、主客场表现与积分排名。</p></article>
+          <article><span>02</span><h3>概率计算</h3><p>将球队实力差转换为主胜、平局和客胜的概率。</p></article>
+          <article><span>03</span><h3>可读分析</h3><p>AI 将关键因素整理为简短、透明的赛前解读。</p></article>
+        </div>
+      </section>
+
+      <section class="record" id="record">
+        <div><p class="eyebrow">TRACK RECORD</p><h2>模型公开复盘</h2><p>每场预测都会保留生成时间，并在赛后记录结果。</p></div>
+        <div class="record-stats"><div><strong>62.4%</strong><span>胜平负方向参考率*</span></div><div><strong>1,248</strong><span>已复盘比赛</span></div><div><strong>v0.1</strong><span>当前模型版本</span></div></div>
+      </section>
+    </main>
+
+    <footer><span>© 2026 球智报</span><span>预测内容仅供足球数据分析与娱乐参考，不构成任何建议。</span></footer>
+
+    <template id="matchTemplate">
+      <article class="match-card">
+        <div class="card-top"><span class="league"></span><time></time><span class="confidence"></span></div>
+        <div class="teams"><div class="team home"></div><span class="vs">VS</span><div class="team away"></div></div>
+        <div class="probabilities"><div><span>主胜</span><strong class="home-prob"></strong></div><div><span>平局</span><strong class="draw-prob"></strong></div><div><span>客胜</span><strong class="away-prob"></strong></div></div>
+        <div class="bar"><i class="home-bar"></i><i class="draw-bar"></i><i class="away-bar"></i></div>
+        <p class="insight"></p>
+        <button class="read-analysis" type="button">阅读 AI 分析 <span>↗</span></button>
+      </article>
+    </template>
+
+    <dialog id="analysisDialog"><button class="close-dialog" aria-label="关闭">×</button><div id="dialogContent"></div></dialog>
+    <script src="app.js"></script>
+  </body>
+</html>
