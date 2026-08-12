@@ -3,8 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="球智报：每天用数据和 AI 解读值得关注的足球比赛。" />
-    <title>球智报 · 每日足球 AI 分析</title>
+    <meta name="description" content="球智报提供今日足球比赛预测、胜平负概率与赛前 AI 分析。查看热门联赛赛程、对阵数据和每场比赛的独立预测详情。" />
+    <meta name="keywords" content="足球比赛预测,今日足球预测,足球胜平负预测,足球赛前分析,足球AI预测,今日足球赛程" />
+    <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+    <link rel="canonical" href="https://qiuzhibao.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="今日足球比赛预测｜胜平负概率与赛前 AI 分析｜球智报" />
+    <meta property="og:description" content="每日更新足球赛程、胜平负概率与赛前 AI 数据分析。" />
+    <meta property="og:url" content="https://qiuzhibao.vercel.app/" />
+    <title>今日足球比赛预测｜胜平负概率与赛前 AI 分析｜球智报</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,7 +27,7 @@
     <main id="top">
       <section class="hero">
         <p class="eyebrow">DAILY FOOTBALL BRIEFING · <span id="todayDate"></span></p>
-        <h1>每天值得看的<br /><em>足球 AI 分析</em></h1>
+        <h1>今日足球比赛预测<br /><em>胜平负 AI 分析</em></h1>
         <p class="hero-copy">基于近期表现、主客场数据与球队动态，为你用三分钟读懂一场比赛。</p>
         <div class="hero-meta"><span><i></i> 数据已更新</span><span>今日 <b id="matchCount">3</b> 场焦点赛事</span></div>
       </section>
@@ -69,6 +76,12 @@
     </template>
 
     <dialog id="analysisDialog"><button class="close-dialog" aria-label="关闭">×</button><div id="dialogContent"></div></dialog>
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"WebSite","name":"球智报","url":"https://qiuzhibao.vercel.app/","inLanguage":"zh-CN","description":"今日足球比赛预测、胜平负概率与赛前 AI 分析。"}
+    </script>
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Organization","name":"球智报","url":"https://qiuzhibao.vercel.app/"}
+    </script>
     <script src="app.js"></script>
   </body>
 </html>
