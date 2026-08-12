@@ -17,7 +17,8 @@ const chineseNames = {
   'Paris Saint Germain': '巴黎圣日耳曼', 'Marseille': '马赛', 'Monaco': '摩纳哥',
   'FK Kukesi': '库克斯', 'Besa Kavajë': '贝萨卡瓦耶', 'East Bengal II': '东孟加拉二队',
   'Al Arabi': '阿拉比', 'Amkar': '阿姆卡尔', 'Pobeda Nizhny Novgorod': '下诺夫哥罗德波别达',
-  'Pobeda Nizhniy Novgorod': '下诺夫哥罗德波别达', 'Kaluga': '卡卢加', 'Iskra Smolensk': '斯摩棱斯克火花'
+  'Pobeda Nizhniy Novgorod': '下诺夫哥罗德波别达', 'Kaluga': '卡卢加', 'Iskra Smolensk': '斯摩棱斯克火花',
+  'Fundacion Amigos': '阿米戈斯基金会', 'Costa Brava': '布拉瓦海岸', 'Torneo Federal A': '阿根廷联邦A联赛'
 };
 
 function toChineseName(name) {
@@ -90,11 +91,17 @@ function toPercent(value, fallback) {
 
 function localizeAdvice(advice) {
   if (!advice) return '';
-  let text = advice.replace('Double chance:', '双重机会：').replace('draw or', '平局或');
+  let text = advice;
   Object.entries(chineseNames).forEach(([english, chinese]) => {
     text = text.replaceAll(english, chinese);
   });
-  return text;
+  return text
+    .replace(/Combo Double chance\s*:/i, '组合双重机会：')
+    .replace(/Double chance\s*:/i, '双重机会：')
+    .replace(/\bor draw\b/gi, '或平局')
+    .replace(/\bdraw or\b/gi, '平局或')
+    .replace(/\s+and\s+-(\d+(?:\.\d+)?)\s+goals?/i, '，且总进球小于 $1')
+    .replace(/\s+and\s+\+(\d+(?:\.\d+)?)\s+goals?/i, '，且总进球大于 $1');
 }
 
 function fromApiFixture(item, prediction) {
